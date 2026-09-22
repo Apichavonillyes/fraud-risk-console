@@ -4,7 +4,7 @@ An interactive fraud-detection dashboard that treats the alert threshold as a **
 
 **[Live demo](https://apichavonillyes.github.io/fraud-risk-console/)** · Python · scikit-learn · XGBoost · D3.js
 
-(![Dashboard screenshot](screenshot.png))
+![Dashboard screenshot](screenshot.png)
 
 > Personal portfolio project built on a public dataset. It uses no data from Amex or any other card issuer.
 
