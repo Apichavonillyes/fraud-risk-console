@@ -2,7 +2,7 @@
 
 An interactive fraud-detection dashboard that treats the alert threshold as a **business decision, not an accuracy score**. I trained a model on 284,807 real (anonymized) card transactions. The dashboard shows what each threshold costs in missed fraud and review work, and picks the one that loses the least money.
 
-**[Live demo](https://YOUR-USERNAME.github.io/fraud-risk-console/)** · Python · scikit-learn · XGBoost · D3.js
+**[Live demo](https://apichavonillyes.github.io/fraud-risk-console/)** · Python · scikit-learn · XGBoost · D3.js
 
 ![Dashboard screenshot](docs/screenshot.png)
 
