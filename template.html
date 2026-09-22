@@ -1,0 +1,397 @@
+<title>Card Fraud Risk Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: dark;
+  --bg:#0a0e14; --panel:#0f141c; --panel2:#131a24; --line:#1c2531; --grid:#17202b;
+  --ink:#e6edf3; --ink2:#a9b4c2; --muted:#6f7c8d;
+  --fraud:#ff4757; --safe:#00d9ff; --good:#00e5a0; --amber:#ffb020; --violet:#a58bff;
+  --fraud-dim:rgba(255,71,87,.14); --safe-dim:rgba(0,217,255,.12);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:14px/1.45 var(--sans);padding-inline:16px;padding-block:14px 40px;
+  background:radial-gradient(1200px 500px at 70% -200px,rgba(0,217,255,.06),transparent 70%),var(--bg);min-height:100%}
+.wrap{max-width:1560px;margin:0 auto;display:grid;gap:14px}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--cond);margin:0;text-wrap:balance;letter-spacing:.01em}
+.eyebrow{font:600 11px/1 var(--cond);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--safe);outline-offset:2px}
+
+/* ---------- top bar */
+.top{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand svg{flex:none}
+.brand h1{font-size:20px;font-weight:700}
+.brand p{margin:2px 0 0;color:var(--ink2);font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;font:600 10.5px/1 var(--cond);letter-spacing:.12em;text-transform:uppercase;padding:5px 8px;border:1px solid var(--line);border-radius:3px;color:var(--ink2);background:var(--panel)}
+.badge i{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good)}
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.ctl{display:flex;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel)}
+.seg button{background:none;border:0;padding:6px 11px;font:500 12px/1.2 var(--cond);letter-spacing:.04em;color:var(--ink2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel2);color:var(--ink);box-shadow:inset 0 -2px 0 var(--safe)}
+.seg button:hover{color:var(--ink)}
+.costctl input[type=range]{width:110px}
+.costctl output{font:500 13px var(--mono);min-width:34px;color:var(--amber)}
+
+/* ---------- KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.kpi{background:var(--panel);padding:14px 16px 13px;display:grid;gap:6px;min-width:0}
+.kpi .v{font:500 clamp(22px,2.3vw,30px)/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+.kpi .s{font-size:12px;color:var(--ink2)}
+.kpi .s b{font-weight:500;color:var(--ink)}
+.kpi.alert .v{color:var(--fraud)} .kpi.win .v{color:var(--good)}
+.kpi .spark{height:3px;background:var(--grid);border-radius:2px;overflow:hidden}
+.kpi .spark span{display:block;height:100%;background:var(--good);width:0;transition:width .5s cubic-bezier(.2,.7,.2,1)}
+
+/* ---------- panels */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;min-width:0;position:relative}
+.ph{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.ph h2{font-size:15px;font-weight:600}
+.ph .note{font-size:11.5px;color:var(--muted)}
+.sub{font-size:12px;color:var(--ink2);margin:0}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 388px;gap:14px}
+.command{padding:16px 18px;border-color:#233040;background:linear-gradient(180deg,#111822,var(--panel) 120px)}
+.thr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 22px;align-items:center;margin:4px 0 12px}
+.thr .tval{font:500 44px/1 var(--mono);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.thr .tlab{font:600 11px/1.2 var(--cond);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.sliderwrap{position:relative;padding-top:18px}
+.sliderwrap .optpin{position:absolute;top:0;transform:translateX(-50%);font:600 10px/1 var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--amber);white-space:nowrap;pointer-events:none;transition:left .4s}
+.sliderwrap .optpin::after{content:"";position:absolute;left:50%;top:13px;width:1px;height:14px;background:var(--amber)}
+.sliderwrap .scale{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--muted);margin-top:4px;position:relative;height:14px}
+.sliderwrap .scale span{position:absolute;transform:translateX(-50%)}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;width:100%;height:22px;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--fraud),#8a5cff 45%,var(--safe))}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--fraud),#8a5cff 45%,var(--safe))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;background:var(--bg);border:3px solid var(--ink);box-shadow:0 0 0 4px rgba(230,237,243,.08),0 0 18px rgba(0,217,255,.35)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--bg);border:3px solid var(--ink);box-shadow:0 0 18px rgba(0,217,255,.35)}
+.costctl input[type=range]::-webkit-slider-runnable-track{background:var(--line);height:4px}
+.costctl input[type=range]::-moz-range-track{background:var(--line);height:4px}
+.costctl input[type=range]::-webkit-slider-thumb{width:14px;height:14px;margin-top:-5px;border-width:2px;border-color:var(--amber);box-shadow:none}
+.thrbtns{display:flex;flex-direction:column;gap:6px}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:6px 10px;font:500 12px/1.2 var(--cond);letter-spacing:.04em;cursor:pointer;color:var(--ink2);white-space:nowrap}
+.btn:hover{color:var(--ink);border-color:#2c3a4b}
+.btn.amber{color:var(--amber);border-color:rgba(255,176,32,.35)}
+
+.cc-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px}
+.cc-cell{background:rgba(10,14,20,.55);border:1px solid var(--line);border-radius:5px;padding:12px 12px 8px;min-width:0}
+.cc-cell h3{font-size:13px;font-weight:600;margin-bottom:2px}
+.cc-cell .sub{margin-bottom:6px}
+.chart{width:100%;position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+
+/* confusion matrix */
+.cm{display:grid;grid-template-columns:auto 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:4px;font-size:12px}
+.cm .hd{font:600 10.5px/1.2 var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:end;padding:0 0 3px 2px}
+.cm .rh{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;align-self:center;padding:0 2px}
+.cm .cell{border-radius:4px;padding:10px 10px 9px;display:grid;gap:3px;position:relative;overflow:hidden;border:1px solid transparent;transition:background-color .3s}
+.cm .cell .n{font:500 26px/1 var(--mono);font-variant-numeric:tabular-nums}
+.cm .cell .l{font:600 11px/1.2 var(--cond);letter-spacing:.06em;text-transform:uppercase}
+.cm .cell .d{font:11.5px var(--mono);color:var(--ink2)}
+.cm .tp{border-color:rgba(0,229,160,.35)} .cm .tp .l{color:var(--good)}
+.cm .fn{border-color:rgba(255,71,87,.45)} .cm .fn .l{color:var(--fraud)}
+.cm .fp{border-color:rgba(255,176,32,.35)} .cm .fp .l{color:var(--amber)}
+.cm .tn{border-color:rgba(0,217,255,.22)} .cm .tn .l{color:var(--safe)}
+
+.readouts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:10px}
+.ro{background:var(--panel);padding:8px 10px}
+.ro .k{font:600 10.5px/1.2 var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ro .v{font:500 17px/1.3 var(--mono);font-variant-numeric:tabular-nums}
+.ro .v.pos{color:var(--good)} .ro .v.neg{color:var(--fraud)}
+.lower-cc{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr) minmax(0,1fr);gap:14px;margin-top:14px}
+
+/* feed */
+.feed{display:flex;flex-direction:column;padding:14px 0 0;overflow:hidden}
+.feed .ph{padding:0 14px}
+.live{display:inline-flex;align-items:center;gap:7px;font:600 11px/1 var(--cond);letter-spacing:.14em;text-transform:uppercase;color:var(--fraud)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--fraud);animation:pulse 1.4s infinite}
+.live.paused{color:var(--muted)} .live.paused i{background:var(--muted);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,71,87,.6)}70%{box-shadow:0 0 0 8px rgba(255,71,87,0)}100%{box-shadow:0 0 0 0 rgba(255,71,87,0)}}
+.feedstats{display:grid;grid-template-columns:repeat(4,1fr);border-block:1px solid var(--line);margin-top:4px}
+.feedstats div{padding:7px 8px 7px 14px;border-right:1px solid var(--line);min-width:0}
+.feedstats div:last-child{border-right:0}
+.feedstats .k{font:600 10px/1.2 var(--cond);letter-spacing:.06em;white-space:nowrap;text-transform:uppercase;color:var(--muted)}
+.feedstats .v{font:500 15px/1.3 var(--mono)}
+.feedhead,.tx{display:grid;grid-template-columns:60px minmax(0,1fr) 58px 76px;gap:8px;align-items:center;padding:0 14px}
+.feedhead{font:600 10px/1 var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-block:8px 6px}
+.feedlist{flex:1 1 0;min-height:0;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(180deg,#000 80%,transparent);mask-image:linear-gradient(180deg,#000 80%,transparent)}
+.tx{height:38px;border-top:1px solid rgba(28,37,49,.7);font-size:12px;animation:slidein .35s cubic-bezier(.2,.7,.2,1)}
+.tx .t{font:11.5px var(--mono);color:var(--muted)}
+.tx .m{min-width:0}
+.tx .m .a{font:500 12.5px var(--mono)}
+.tx .m .c{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .sc{display:grid;gap:3px}
+.tx .sc .bar{height:3px;background:var(--grid);border-radius:2px;overflow:hidden}
+.tx .sc .bar span{display:block;height:100%;background:var(--safe)}
+.tx .sc .p{font:11px var(--mono);color:var(--ink2)}
+.chip{font:600 9.5px/1 var(--cond);letter-spacing:.08em;text-transform:uppercase;padding:4px 5px;border-radius:3px;text-align:center;white-space:nowrap}
+.chip.pass{color:var(--muted);border:1px solid var(--line)}
+.chip.flag{color:#fff;background:var(--fraud)}
+.chip.fp{color:var(--amber);border:1px solid rgba(255,176,32,.5)}
+.chip.miss{color:var(--fraud);border:1px dashed var(--fraud)}
+.tx.hot{background:linear-gradient(90deg,rgba(255,71,87,.16),rgba(255,71,87,.02));animation:slidein .35s cubic-bezier(.2,.7,.2,1),glow 1.6s ease-out}
+.tx.hot .sc .bar span{background:var(--fraud)}
+.tx.missed{background:repeating-linear-gradient(135deg,rgba(255,71,87,.07) 0 6px,transparent 6px 12px)}
+@keyframes slidein{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
+@keyframes glow{0%{box-shadow:inset 3px 0 0 var(--fraud),0 0 24px rgba(255,71,87,.55)}100%{box-shadow:inset 3px 0 0 var(--fraud),0 0 0 rgba(255,71,87,0)}}
+.tx.hot{box-shadow:inset 3px 0 0 var(--fraud)}
+@media (min-width:1181px){.main>.feed{contain:size}}
+.feedfoot{padding:8px 14px 12px;font-size:11px;color:var(--muted);border-top:1px solid var(--line)}
+
+/* grids below */
+.sect{display:flex;align-items:baseline;gap:14px;margin-top:8px}
+.sect h2{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.sect .rule{flex:1;height:1px;background:var(--line)}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.ratelist{display:grid;gap:5px;margin-top:10px}
+.rl{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 54px 44px;gap:8px;align-items:center;font-size:12px;cursor:default;border-radius:3px;padding:1px 2px}
+.rl:hover{background:var(--panel2)}
+.rl .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rl .nm small{color:var(--muted);font-size:10.5px;margin-left:4px}
+.rl .bar{height:8px;background:var(--grid);border-radius:0 4px 4px 0;overflow:hidden}
+.rl .bar span{display:block;height:100%;border-radius:0 4px 4px 0;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+.rl .r{font:12px var(--mono);text-align:right}
+.rl .x{font:11px var(--mono);text-align:right;color:var(--ink2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--ink2);align-items:center}
+.legend .sw{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:6px;border-radius:1px}
+.legend .box{display:inline-block;width:10px;height:10px;vertical-align:-1px;margin-right:6px;border-radius:2px}
+.callout{margin-top:8px;font-size:12px;color:var(--ink2);border-left:2px solid var(--violet);padding:2px 0 2px 10px}
+.callout b{color:var(--ink);font-weight:500}
+.axis text{fill:var(--muted);font:10.5px var(--mono)}
+.axis path,.axis line{stroke:var(--line)}
+.gridl line{stroke:var(--grid)} .gridl path{display:none}
+.alab{fill:var(--muted);font:600 10px var(--cond);letter-spacing:.1em;text-transform:uppercase}
+
+/* tooltip */
+.tip{position:fixed;z-index:50;pointer-events:none;background:rgba(12,17,24,.96);border:1px solid #2a3747;border-radius:5px;padding:8px 10px;font-size:12px;min-width:150px;max-width:280px;box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 0 1px rgba(0,217,255,.05);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+.tip.on{opacity:1;transform:none}
+.tip .tt{font:600 10.5px/1.3 var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.tip .tr{display:flex;align-items:center;gap:8px;justify-content:space-between;line-height:1.6}
+.tip .tr .lk{display:flex;align-items:center;gap:6px;color:var(--ink2)}
+.tip .tr .lk i{width:12px;height:2px;border-radius:1px;display:inline-block}
+.tip .tr b{font:500 12.5px var(--mono);color:var(--ink)}
+
+/* method */
+.method{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 28px;font-size:12.5px;color:var(--ink2)}
+.method h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-bottom:6px}
+.method p{margin:0 0 6px;max-width:62ch}
+.method b{color:var(--ink);font-weight:500}
+.method code{font:11.5px var(--mono);color:var(--ink)}
+.assume{border:1px solid rgba(255,176,32,.3);background:rgba(255,176,32,.04);border-radius:5px;padding:10px 12px}
+.assume h3{color:var(--amber)}
+.disclaimer{font-size:11.5px;color:var(--muted);text-align:center;padding-top:6px}
+
+@media (max-width:1180px){
+  .main{grid-template-columns:1fr}
+  .feedlist{flex:none;height:420px}
+  .g3,.lower-cc{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .method{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:860px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis .kpi:first-child{grid-column:1/-1}
+  .cc-grid,.g3,.lower-cc,.method{grid-template-columns:1fr}
+  .thr{grid-template-columns:1fr}
+  .thrbtns{flex-direction:row;flex-wrap:wrap}
+  .thr .tval{font-size:36px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="6" fill="#0f141c" stroke="#233040"/><path d="M5 20h6l3-9 4 15 3-10 2 4h6" fill="none" stroke="#00d9ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="21" cy="16" r="2.6" fill="#ff4757"/></svg>
+      <div>
+        <h1>Card Fraud Risk Console</h1>
+        <p>Portfolio project on a public, anonymized dataset — mlg-ulb “Credit Card Fraud Detection” (European cardholders, Sep 2013). Not Amex or any issuer’s data.</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="ctl"><span class="eyebrow">Model</span>
+        <div class="seg" role="group" aria-label="Model">
+          <button type="button" id="m-xgb" data-model="xgb" aria-pressed="true">XGBoost</button>
+          <button type="button" id="m-lr" data-model="lr" aria-pressed="false">Logistic reg.</button>
+        </div>
+      </div>
+      <label class="ctl costctl" for="cost"><span class="eyebrow">Review cost / alert</span>
+        <input type="range" id="cost" min="1" max="25" step="1" value="10" aria-describedby="costout">
+        <output id="costout">$10</output>
+      </label>
+      <span class="badge"><i></i>Test set · <span id="b-ntest"></span> tx</span>
+    </div>
+  </header>
+
+  <section class="kpis" aria-label="Headline metrics">
+    <div class="kpi"><span class="eyebrow">Transactions analyzed</span><span class="v" id="k-n">0</span><span class="s"><b id="k-amt"></b> volume over <b id="k-hrs"></b> hours</span></div>
+    <div class="kpi alert"><span class="eyebrow">Fraud rate (base)</span><span class="v" id="k-rate">0</span><span class="s"><b id="k-fraud"></b> fraud cases · “flag nothing” scores <b id="k-acc"></b> accuracy</span></div>
+    <div class="kpi"><span class="eyebrow">Fraud caught · test set</span><span class="v"><span id="k-tp">0</span><span style="color:var(--muted);font-size:.6em"> / <span id="k-tpn"></span></span></span><div class="spark"><span id="k-tpbar"></span></div><span class="s">recall <b id="k-rec"></b> at current threshold</span></div>
+    <div class="kpi"><span class="eyebrow">PR-AUC · test set</span><span class="v" id="k-prauc">0</span><span class="s">95% CI <b id="k-prci"></b> · ROC-AUC <b id="k-roc"></b></span></div>
+    <div class="kpi win"><span class="eyebrow">Est. $ saved @ cost-optimal</span><span class="v" id="k-saved">0</span><span class="s">vs. no model (<b id="k-base"></b> fraud loss) · t = <b id="k-topt"></b></span></div>
+  </section>
+
+  <div class="main">
+    <section class="panel command" aria-label="Threshold and cost analysis">
+      <div class="ph">
+        <h2>Decision threshold &amp; cost analysis</h2>
+        <span class="note" id="cc-note"></span>
+      </div>
+      <div class="thr">
+        <div><div class="tlab">Flag if score ≥</div><div class="tval" id="tval">0.500</div></div>
+        <div class="sliderwrap">
+          <span class="optpin" id="optpin">cost-optimal</span>
+          <input type="range" id="thr" min="0" max="1000" step="1" value="707" aria-label="Decision threshold">
+          <div class="scale" id="thrscale"></div>
+        </div>
+        <div class="thrbtns">
+          <button type="button" class="btn amber" id="snap">Snap to cost-optimal</button>
+          <button type="button" class="btn" id="snap50">Default 0.50</button>
+        </div>
+      </div>
+
+      <div class="cc-grid">
+        <div class="cc-cell">
+          <h3>Expected cost vs. threshold</h3>
+          <p class="sub">Test set. Every alert costs <span class="mono" id="cc-c">$10</span> to review; every missed fraud loses its full amount.</p>
+          <div class="chart" id="costchart"></div>
+          <div class="legend" style="margin-top:4px">
+            <span><span class="box" style="background:var(--fraud)"></span>Fraud lost (missed)</span>
+            <span><span class="box" style="background:var(--amber)"></span>Review cost (all alerts)</span>
+            <span><span class="sw" style="background:var(--ink)"></span>Total</span>
+            <span><span class="sw" style="background:none;border-top:1px dashed var(--muted)"></span>No model</span>
+          </div>
+        </div>
+        <div class="cc-cell">
+          <h3>Precision &amp; recall vs. threshold</h3>
+          <p class="sub">Drag the slider or click the chart.</p>
+          <div class="chart" id="prtchart"></div>
+          <div class="legend" style="margin-top:4px">
+            <span><span class="sw" style="background:var(--safe)"></span>Precision</span>
+            <span><span class="sw" style="background:var(--violet)"></span>Recall</span>
+            <span><span class="sw" style="background:var(--ink2);height:1px"></span>F1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lower-cc">
+        <div class="cc-cell">
+          <h3>Confusion matrix</h3>
+          <p class="sub">Test set, <span class="mono" id="cm-n"></span> transactions.</p>
+          <div class="cm">
+            <span></span><span class="hd">Flagged</span><span class="hd">Passed</span>
+            <span class="hd rh">Fraud</span>
+            <div class="cell tp"><span class="l">Fraud caught</span><span class="n" id="cm-tp">0</span><span class="d" id="cm-tpa"></span></div>
+            <div class="cell fn"><span class="l">Fraud missed</span><span class="n" id="cm-fn">0</span><span class="d" id="cm-fna"></span></div>
+            <span class="hd rh">Legit</span>
+            <div class="cell fp"><span class="l">False alarms</span><span class="n" id="cm-fp">0</span><span class="d" id="cm-fpa"></span></div>
+            <div class="cell tn"><span class="l">Correctly passed</span><span class="n" id="cm-tn">0</span><span class="d" id="cm-tna"></span></div>
+          </div>
+        </div>
+        <div class="cc-cell">
+          <h3>Precision–recall balance</h3>
+          <p class="sub" id="gauge-sub">&nbsp;</p>
+          <div class="chart" id="gauge"></div>
+        </div>
+        <div class="cc-cell">
+          <h3>At this threshold</h3>
+          <div class="readouts">
+            <div class="ro"><div class="k">Precision</div><div class="v" id="r-p">—</div></div>
+            <div class="ro"><div class="k">Recall</div><div class="v" id="r-r">—</div></div>
+            <div class="ro"><div class="k">F1</div><div class="v" id="r-f1">—</div></div>
+            <div class="ro"><div class="k">Alerts / 10K tx</div><div class="v" id="r-al">—</div></div>
+            <div class="ro"><div class="k">Total cost</div><div class="v" id="r-cost">—</div></div>
+            <div class="ro"><div class="k">Saved vs. no model</div><div class="v" id="r-saved">—</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel feed" aria-label="Live transaction replay">
+      <div class="ph">
+        <span class="live" id="live"><i></i>Live replay</span>
+        <button type="button" class="btn" id="pause">Pause</button>
+      </div>
+      <div class="feedstats">
+        <div><div class="k">Streamed</div><div class="v" id="f-n">0</div></div>
+        <div><div class="k">Caught</div><div class="v" id="f-tp" style="color:var(--good)">0</div></div>
+        <div><div class="k">False alarm</div><div class="v" id="f-fp" style="color:var(--amber)">0</div></div>
+        <div><div class="k">Missed</div><div class="v" id="f-fn" style="color:var(--fraud)">0</div></div>
+      </div>
+      <div class="feedhead"><span>Time</span><span>Amount · cluster</span><span>Score</span><span>Decision</span></div>
+      <div class="feedlist" id="feedlist" aria-live="off"></div>
+      <div class="feedfoot" id="feedfoot"></div>
+    </section>
+  </div>
+
+  <div class="sect"><h2>Where fraud concentrates</h2><span class="rule"></span><span class="note eyebrow" id="seg-note"></span></div>
+  <div class="g3">
+    <section class="panel">
+      <div class="ph"><h2>Fraud rate by segment</h2>
+        <div class="seg" role="group" aria-label="Segment">
+          <button type="button" data-seg="cluster" aria-pressed="true">Pattern cluster</button>
+          <button type="button" data-seg="tod" aria-pressed="false">Time of day</button>
+          <button type="button" data-seg="amount" aria-pressed="false">Amount tier</button>
+        </div>
+      </div>
+      <p class="sub">Tile area = transaction volume · color = fraud <b>rate</b> (not count).</p>
+      <div class="chart" id="treemap" style="margin-top:8px"></div>
+      <div class="ratelist" id="ratelist"></div>
+      <p class="callout" id="seg-callout"></p>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>Fraud rate by hour × amount</h2><span class="note">all 284,807 tx</span></div>
+      <p class="sub">Hour is derived from <code class="mono">Time mod 86,400</code>; the overnight volume trough suggests t = 0 ≈ midnight.</p>
+      <div class="chart" id="heatmap" style="margin-top:6px"></div>
+      <div id="heatlegend" style="margin-top:6px"></div>
+      <p class="callout" id="heat-callout"></p>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>Amount distribution</h2><span class="note">share of each class · log scale</span></div>
+      <div class="legend"><span><span class="box" style="background:var(--safe)"></span>Legitimate</span><span><span class="box" style="background:var(--fraud)"></span>Fraud</span></div>
+      <div class="chart" id="amtchart" style="margin-top:6px"></div>
+      <p class="callout" id="amt-callout"></p>
+    </section>
+  </div>
+
+  <div class="sect"><h2>Model performance</h2><span class="rule"></span><span class="note eyebrow" id="perf-note"></span></div>
+  <div class="g3">
+    <section class="panel">
+      <div class="ph"><h2>Precision–recall curve</h2><span class="note">test set</span></div>
+      <div class="chart" id="prchart"></div>
+      <p class="callout" id="pr-callout"></p>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>ROC curve</h2><span class="note">test set</span></div>
+      <div class="chart" id="rocchart"></div>
+      <p class="callout">ROC looks excellent for both models because the false-positive <i>rate</i> divides by ~85K legit transactions. That is why PR-AUC is the headline metric here.</p>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>Feature importance</h2><span class="note" id="imp-note"></span></div>
+      <div class="chart" id="impchart"></div>
+      <p class="callout" id="imp-callout"></p>
+    </section>
+  </div>
+
+  <div class="sect"><h2>Method &amp; assumptions</h2><span class="rule"></span></div>
+  <section class="panel method" id="method"></section>
+  <p class="disclaimer">Personal portfolio project by Apicha von Illyes. Every figure is computed from the public mlg-ulb dataset and the models trained on it; no real Amex, issuer, merchant or customer data is used or implied.</p>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+const D = __DATA__;
+</script>
+<script>
+/*__APP__*/
+</script>
