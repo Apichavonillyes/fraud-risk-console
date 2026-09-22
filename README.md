@@ -96,7 +96,6 @@ python build_data.py data/creditcard.csv data.json   # trains models, about 1 mi
 python assemble.py                                   # builds docs/index.html
 ```
 
-Open `docs/index.html` in a browser. To publish the demo, turn on GitHub Pages from the `/docs` folder.
 
 ## Project structure
 
